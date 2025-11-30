@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RIKY STORE - Pembayaran</title>
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+.toggle-theme {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--primary);
+  color: #fff;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.qris-box img {
+  width: 260px;
+  border-radius: 10px;
+}
+
+.struk-box {
+  width: 350px;
+  background: #fff;
+  color: #000;
+  padding: 20px;
+  display: none;
+  border-radius: 10px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<div class="toggle-theme" onclick="toggleTheme()">Mode</div>
+
+<div class="container">
+  <h2 style="text-align:center">
+    <img src="https://files.catbox.moe/atngyj.jpeg" width="80" style="border-radius:50%"><br>
+    <strong>RIKY STORE</strong>
+  </h2>
+
+  <label>Nama Pembeli</label>
+  <input id="nama" placeholder="Nama Anda">
+
+  <label>Pilih Produk</label>
+  <select id="produk">
+    <option value="10.000">Saldo 10.000</option>
+    <option value="20.000">Saldo 20.000</option>
+    <option value="50.000">Saldo 50.000</option>
+    <option value="100.000">Saldo 100.000</option>
+  </select>
+
+  <button class="btn-primary" onclick="buatTransaksi()">Buat Transaksi</button>
+
+  <div id="hasil"></div>
+</div>
+
+<div id="struk" class="struk-box">
+  <img src="https://files.catbox.moe/atngyj.jpeg" width="70">
+  <h3>RIKY STORE</h3>
+  <p id="s-id"></p>
+  <p id="s-nama"></p>
+  <p id="s-produk"></p>
+  <p id="s-harga"></p>
+  <p id="s-waktu"></p>
+  <p><strong>Status: SUCCESS</strong></p>
+  <img src="https://files.catbox.moe/e0yn0t.jpeg" width="150">
+  <h3 style="color:green">LUNAS</h3>
+</div>
+
+<script>
+function toggleTheme() {
+  document.body.classList.toggle("dark");
+  localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+}
+
+if (localStorage.getItem("theme") === "dark") {
+  document.body.classList.add("dark");
+}
+
+function formatRupiah(n) {
+  return "Rp " + n.replace(/\./g,"").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+async function buatTransaksi() {
+  const nama = document.getElementById("nama").value;
+  const produk = document.getElementById("produk").value;
+  const harga = produk;
+
+  const trx = "TRX-" + new Date().toISOString().slice(0,10).replace(/-/g,"") + "-" + Math.floor(100000 + Math.random()*900000);
+
+  const data = {
+    id: trx,
+    nama,
+    produk,
+    harga: formatRupiah(harga),
+    status: "SUCCESS",
+    waktu: new Date().toLocaleString("id-ID")
+  };
+
+  await fetch("/api/create-transaksi", {
+    method: "POST",
+    headers: { "Content-Type":"application/json"},
+    body: JSON.stringify(data)
+  });
+
+  document.getElementById("hasil").innerHTML = `
+    <h3>Transaksi Dibuat</h3>
+    ID: <b>${trx}</b><br>
+    Harga: <b>${formatRupiah(harga)}</b><br><br>
+    <div class="qris-box">
+        <img src="https://files.catbox.moe/e0yn0t.jpeg">
+    </div>
+    <br>
+    <button class="btn-primary" onclick="downloadStruk()">Download Struk</button>
+  `;
+
+  sendTelegram(data);
+
+  fillStruk(data);
+}
+
+function fillStruk(d) {
+  document.getElementById("s-id").innerText = "ID: " + d.id;
+  document.getElementById("s-nama").innerText = "Nama: " + d.nama;
+  document.getElementById("s-produk").innerText = "Produk: " + d.produk;
+  document.getElementById("s-harga").innerText = "Harga: " + d.harga;
+  document.getElementById("s-waktu").innerText = "Waktu: " + d.waktu;
+}
+
+function downloadStruk() {
+  const box = document.getElementById("struk");
+  box.style.display = "block";
+
+  html2canvas(box).then(canvas => {
+      const link = document.createElement("a");
+      link.download = "struk.png";
+      link.href = canvas.toDataURL();
+      link.click();
+      box.style.display = "none";
+  });
+}
+
+function sendTelegram(d) {
+  const token = "8110930542:AAEU4o-LF5DjXi_NQAsV8Ss7O_oiMfhJkvM";
+  const chat = "7115609296";
+
+  const text = `
+🔔 *Transaksi Baru*
+ID: ${d.id}
+Nama: ${d.nama}
+Produk: ${d.produk}
+Harga: ${d.harga}
+Status: SUCCESS`;
+
+  fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type":"application/json"},
+    body: JSON.stringify({ chat_id: chat, text, parse_mode:"Markdown" })
+  });
+}
+</script>
+
+</body>
+</html>
