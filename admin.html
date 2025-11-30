@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container" id="login">
+  <h2>Admin Login</h2>
+  <input id="pass" placeholder="Password admin">
+  <button class="btn-primary" onclick="login()">Login</button>
+</div>
+
+<div class="container" id="dash" style="display:none">
+  <h2>Dashboard Transaksi</h2>
+  <div id="list"></div>
+</div>
+
+<script>
+function login() {
+  if (document.getElementById("pass").value === "riky123") {
+    document.getElementById("login").style.display="none";
+    document.getElementById("dash").style.display="block";
+    loadTransaksi();
+  } else alert("Password salah!");
+}
+
+async function loadTransaksi() {
+  const res = await fetch("/api/get-transaksi");
+  const data = await res.json();
+
+  let html = "";
+  data.reverse().forEach(t=>{
+    html += `
+      <div style="border:1px solid var(--border);padding:10px;margin:10px 0">
+        <b>${t.id}</b><br>
+        ${t.nama} - ${t.produk}<br>
+        ${t.harga}<br>
+        Status: ${t.status}<br>
+        ${t.waktu}
+      </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
